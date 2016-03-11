@@ -178,12 +178,21 @@ class MCTS(object):
 
         Return:
         list of tuples ((x,y), probability)
-        """
+        
     
                 policy = CNNPolicy(["board", "liberties", "sensibleness", "capture_size"])
-                actions = policy.eval_state(state)     
+                actions = policy.eval_state(state)  
+        
+    
+        Use random generated values for now
+        
+        """
+                actions = []
+                for i in range(0, random.randrange(50, 300)):
+                    actions.append(((np.random.randint(18), np.random.randint(18)), random.uniform(0, 1))) 
+ 
+                return actions   
        
-                return actions
 
         def getMove(self, nSimulations):
                 
