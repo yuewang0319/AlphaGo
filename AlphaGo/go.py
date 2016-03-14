@@ -53,6 +53,28 @@ class GameState(object):
 		# given that this is already cached, it is a fast lookup
 		return self.group_sets[x][y]
 
+	def get_groups_around(self, position):
+		"""returns a list of the unique groups adjacent to position
+
+		'unique' means that, for example in this position:
+
+			. . . . .
+			. B W . .
+			. W W . .
+			. . . . .
+			. . . . .
+
+		only the one white group would be returned on get_groups_around((1,1))
+		"""
+		groups = []
+		for (nx,ny) in self._neighbors(position):
+			if self.board[nx][ny] != EMPTY:
+				group = self.group_sets[nx][ny]
+				group_member = next(iter(group)) # pick any stone
+				if not any(group_member in g for g in groups):
+					groups.append(group)
+		return groups
+
 	def _on_board(self, position):
 		"""simply return True iff position is within the bounds of [0, self.size)
 		"""
@@ -241,57 +263,6 @@ class GameState(object):
 			self.history.append(action)
 		else:
 			raise IllegalMove(str(action))
-
-	def symmetries(self):
-		"""returns a list of 8 GameState objects:
-		all reflections and rotations of the current board
-
-		does not check for duplicates
-		"""
-
-		# we use numpy's built-in array symmetry routines for self.board.
-		# but for all xy pairs (i.e. self.ko and self.history), we need to
-		# know how to rotate a tuple (x,y) into (new_x, new_y)
-		xy_symmetry_functions = {
-			"noop":   lambda (x,y): (x, y),
-			"rot90":  lambda (x,y): (y, self.size-x),
-			"rot180": lambda (x,y): (self.size-x, self.size-y),
-			"rot270": lambda (x,y): (self.size-y, x),
-			"mirror-lr": lambda (x,y): (self.size-x, y),
-			"mirror-ud": lambda (x,y): (x, self.size-y),
-			"mirror-\\": lambda (x,y): (y, x),
-			"mirror-/":  lambda (x,y): (self.size-y, self.size-x)
-		}
-
-		def update_ko_history(copy, name):
-			if copy.ko is not None:
-				copy.ko = xy_symmetry_functions[name](copy.ko)
-			copy.history = [xy_symmetry_functions[name](a) if a is not PASS_MOVE else PASS_MOVE for a in copy.history]
-
-		copies = [self.copy() for i in range(8)]
-		# copies[0] is the original.
-		# rotate CCW 90
-		copies[1].board = np.rot90(self.board,1)
-		update_ko_history(copies[1], "rot90")
-		# rotate 180
-		copies[2].board = np.rot90(self.board,2)
-		update_ko_history(copies[2], "rot180")
-		# rotate CCW 270
-		copies[3].board = np.rot90(self.board,3)
-		update_ko_history(copies[3], "rot270")
-		# mirror left-right
-		copies[4].board = np.fliplr(self.board)
-		update_ko_history(copies[4], "mirror-lr")
-		# mirror up-down
-		copies[5].board = np.flipud(self.board)
-		update_ko_history(copies[5], "mirror-ud")
-		# mirror \ diagonal
-		copies[6].board = np.transpose(self.board)
-		update_ko_history(copies[6], "mirror-\\")
-		# mirror / diagonal (equivalently: rotate 90 CCW then flip LR)
-		copies[7].board = np.fliplr(copies[1].board)
-		update_ko_history(copies[7], "mirror-/")
-		return copies
 
 	def from_sgf(self, sgf_string):
 		raise NotImplementedError()
